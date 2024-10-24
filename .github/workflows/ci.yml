@@ -78,7 +78,9 @@ jobs:
       - name: Pull image from Docker Hub
         run: |
           docker pull ${{ secrets.DOCKER_USERNAME }}/memory:latest
-
+      
       - name: Run image from Docker Hub
         run: |
+          docker stop memory-container || true
+          docker rm memory-container || true
           docker run -d -p 80:80 --name memory-container ${{ secrets.DOCKER_USERNAME }}/memory:latest       
