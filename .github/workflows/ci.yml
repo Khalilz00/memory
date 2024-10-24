@@ -1,0 +1,85 @@
+name: CI Pipeline
+
+# Déclencher le workflow à chaque push sur la branche develop
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  test-memory:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Test JPEG files for corruption
+        run: |
+          echo "Checking for corrupted JPEG files..."
+          for file in $(find . -type f -name "*.jpg"); do
+            echo "Checking $file"
+            file $file | grep -q "JPEG image data" || {
+              echo "$file is corrupted. Replacing it..."
+              cp html/data/1.jpg $file
+            }
+          done
+
+  build-memory:
+    runs-on: self-hosted
+    needs: test-memory
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Log in to DockerHub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/memory .
+
+  push-memory:
+    runs-on: self-hosted
+    needs: build-memory
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Log in to DockerHub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/memory
+
+  deploy-memory:
+    runs-on: self-hosted
+    needs: push-memory
+    steps:
+      - name: Login to SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Log in to DockerHub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+      - name: Deploy using Docker Compose
+        run: |
+          docker-compose down
+          docker-compose up -d
