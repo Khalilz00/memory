@@ -1,1 +1,4 @@
 .DS_Store
+# Exclure le dossier des fichiers de configuration du runner
+actions-runner/
+actions-runner/_diag/*.log

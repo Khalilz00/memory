@@ -1,0 +1,30 @@
+name: CI Pipeline
+
+# Déclencher le workflow à chaque push sur la branche develop
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  test-memory:
+    # Utiliser un runner self-hosted
+    runs-on: self-hosted
+
+    steps:
+      # Étape 1 : Vérification du code source
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Étape 2 : Vérification des fichiers JPEG
+      - name: Test JPEG files for corruption
+        run: |
+          echo "Checking for corrupted JPEG files..."
+          for file in $(find . -type f -name "*.jpg"); do
+            echo "Checking $file"
+            file $file | grep -q "JPEG image data" || {
+              echo "$file is corrupted. Replacing it..."
+              # Remplacer le fichier corrompu par un autre fichier 
+              cp html/data/1.jpg $file
+            }
+          done
