@@ -72,6 +72,8 @@ jobs:
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Verify SSH agent
+        run: ssh-add -L
 
       - name: Pull image from Docker Hub
         run: |
