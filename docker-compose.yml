@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  memory-app:
+    image: khalilz00/memory:latest
+    container_name: memory-container-v2
+    ports:
+      - "80:80"
+    restart: always
